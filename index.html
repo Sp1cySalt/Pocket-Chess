@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#161512" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Chess" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <title>Pocket Chess</title>
+</head>
+<body>
+  <div id="app">
+    <section id="view-home" class="view">
+      <h1 id="title">Pocket Chess</h1>
+      <p class="sub">Play a friend or a bot</p>
+      <div class="group" id="opp">
+        <h2>Opponent</h2>
+        <button id="opp-local" class="sel">Friend</button>
+        <button id="opp-bot">Bot</button>
+      </div>
+      <div class="group" id="mode-pick">
+        <h2>Mode</h2>
+        <button id="mode-play" class="sel">Play</button>
+        <button id="mode-puzzles">Puzzles</button>
+      </div>
+      <div class="group" id="bot-opts" hidden>
+        <h2>Bot strength: <span id="elo-val">1200</span> Elo</h2>
+        <input id="elo" type="range" min="400" max="3190" step="10" value="1200" />
+        <h2>You play</h2>
+        <button data-side="w" class="sel">White</button>
+        <button data-side="r">Random</button>
+        <button data-side="b">Black</button>
+      </div>
+      <div class="group" id="fb">
+        <h2>Move feedback</h2>
+        <button id="fb-on" class="sel">On</button>
+        <button id="fb-off">Off</button>
+      </div>
+
+      <!-- NEW: board + piece skin picker -->
+      <details class="appearance-group">
+        <summary>Appearance</summary>
+        <div class="group">
+          <h2>UI theme</h2>
+          <div class="picker picker-theme" id="theme-picker"></div>
+          <h2>Board theme</h2>
+          <div class="picker" id="board-picker"></div>
+          <h2>Piece set</h2>
+          <div class="picker" id="piece-picker"></div>
+        </div>
+      </details>
+
+      <div class="group" id="tc">
+        <h2>Time control: <span id="tc-val">10+0</span></h2>
+        <div class="tabs" id="tc-tabs"></div>
+        <div class="presets" id="presets"></div>
+        <div class="custom" id="custom" hidden>
+          <label>Minutes <input id="c-min" type="number" inputmode="decimal" value="10" min="0.5" step="0.5" /></label>
+          <label>Increment (s) <input id="c-inc" type="number" inputmode="numeric" value="0" min="0" /></label>
+        </div>
+      </div>
+      <div class="bar"><button id="start-go" class="primary">Start game</button></div>
+    </section>
+
+    <section id="view-puzzles" class="view" hidden>
+      <div class="puzzle-head">
+        <h2 id="puz-title">Puzzles</h2>
+        <button id="puz-back">Back</button>
+      </div>
+
+      <div id="puz-picker">
+        <h2>Phase</h2>
+        <div class="picker" id="puz-phase"></div>
+        <h2>Motif</h2>
+        <div class="picker" id="puz-motif"></div>
+        <h2>Difficulty</h2>
+        <div class="tabs" id="puz-rating"></div>
+        <div class="bar"><button id="puz-start" class="primary">Start</button></div>
+      </div>
+
+      <div id="puz-game" hidden>
+        <div id="puz-lives" aria-label="5 lives remaining"></div>
+        <div id="puz-board-wrap"><div id="puz-board" class="board"></div></div>
+        <div id="puz-verdict"></div>
+        <div id="puz-meta"></div>
+        <div class="controls">
+          <button id="puz-hint">Hint</button>
+          <button id="puz-retry">Retry</button>
+          <button id="puz-next">Next</button>
+        </div>
+        <div class="controls" style="grid-template-columns:1fr;">
+          <button id="puz-exit">Change filter</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-game" class="view" hidden>
+      <div class="player" id="player-top"><span class="name" id="name-top"></span><span class="clock" id="clock-top"></span></div>
+      <div id="board-wrap"><div id="board" class="board"></div></div>
+      <div id="verdict"></div>
+      <div class="player" id="player-bottom"><span class="name" id="name-bottom"></span><span class="clock" id="clock-bottom"></span></div>
+      <div id="moves"></div>
+      <nav class="controls">
+        <button id="btn-flip">Flip</button>
+        <button id="btn-resign">Resign</button>
+        <button id="btn-menu">Menu</button>
+      </nav>
+    </section>
+  </div>
+
+  <div id="modal" hidden>
+    <div class="box"><h2 id="modal-title"></h2><div id="modal-btns"></div></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

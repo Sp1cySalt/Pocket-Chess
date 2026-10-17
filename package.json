@@ -1,0 +1,27 @@
+{
+  "name": "pocket-chess",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "postinstall": "node scripts/copy-engine.mjs",
+    "build:puzzles": "node scripts/build-puzzles.mjs"
+  },
+  "dependencies": {
+    "chess.js": "^1.0.0",
+    "chessground": "^9.0.0",
+    "fzstd": "^0.1.1",
+    "papaparse": "^5.4.1",
+    "seek-bzip": "^2.0.0",
+    "stockfish": "^17.0.0"
+  },
+  "devDependencies": {
+    "eruda": "^3.0.0",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.0"
+  }
+}

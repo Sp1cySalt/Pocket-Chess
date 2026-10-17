@@ -1,0 +1,582 @@
+:root {
+  --bg: #161512; --panel: #262421; --text: #e8e6e3; --muted: #9a9791; --accent: #81b64c;
+  --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+  /* board = full width, but never taller than the space left after bars/controls */
+  --board: min(100vw, calc(100dvh - var(--sat) - var(--sab) - 272px));
+  --puz-board: min(100vw, calc(100dvh - var(--sat) - var(--sab) - 340px));
+}
+[hidden] { display: none !important; }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none; user-select: none;
+}
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  overscroll-behavior: none; touch-action: manipulation;
+  background: var(--bg); color: var(--text);
+  font: 16px/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+body { position: fixed; inset: 0; width: 100%; }
+#app {
+  height: 100dvh;
+  padding: var(--sat) env(safe-area-inset-right, 0px) var(--sab) env(safe-area-inset-left, 0px);
+}
+.view { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+button {
+  font: inherit; font-weight: 600; color: var(--text); background: var(--panel);
+  border: 0; border-radius: 10px; min-height: 56px; padding: 0 16px;
+}
+button:active { filter: brightness(1.3); }
+button:disabled { opacity: .4; pointer-events: none; }
+button.primary { background: var(--accent); color: #10200a; }
+input {
+  font: inherit; color: var(--text); background: var(--bg); width: 100%;
+  border: 1px solid #3a3733; border-radius: 8px; padding: 10px;
+  -webkit-user-select: text; user-select: text;
+}
+
+/* home */
+#view-home { padding: 16px 16px 0; justify-content: flex-start; overflow-y: auto; }
+h1 { margin: 24px 0 0; font-size: 32px; }
+.sub { margin: 4px 0 20px; color: var(--muted); }
+h2 { margin: 0; font-size: 15px; color: var(--muted); grid-column: 1 / -1; font-weight: 600; }
+.group { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-bottom: 18px; }
+.custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.custom label { font-size: 13px; color: var(--muted); }
+
+#tc { display: flex; flex-direction: column; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; background: var(--panel); border-radius: 12px; }
+.tabs button { min-height: 44px; padding: 0 4px; background: none; color: var(--muted); }
+.tabs button.sel { background: var(--accent); color: #10200a; }
+.presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.bar { position: sticky; bottom: 0; margin: auto -16px 0; padding: 16px; background: linear-gradient(transparent, var(--bg) 16px); }
+.bar button { width: 100%; }
+
+.sel { background: var(--accent); color: #10200a; }
+input[type=range] { grid-column: 1 / -1; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+
+/* move quality colours (the label text is always shown too) */
+.q-Best { color: #96bc4b; } .q-Excellent { color: #81b64c; } .q-Good { color: #a3c585; }
+.q-Inaccuracy { color: #f7c631; } .q-Mistake { color: #e8a13a; } .q-Blunder { color: #e5534b; }
+#verdict {
+  width: var(--board); align-self: center; height: 28px; line-height: 28px; padding: 0 12px;
+  font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* game */
+#board-wrap { width: var(--board); height: var(--board); align-self: center; }
+.board { width: 100%; height: 100%; }
+.cg-wrap, cg-board { touch-action: none; }
+.player, .controls, #moves {
+  width: min(100%, var(--board));
+  align-self: center;
+}
+.player { display: flex; justify-content: space-between; align-items: center; height: 52px; padding: 0 12px; }
+.name { font-weight: 600; }
+.clock {
+  font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--panel); border-radius: 8px; padding: 2px 12px;
+}
+.player.active .clock { background: var(--text); color: #111; }
+.player.low .clock { color: #e5534b; }
+.player.active.low .clock { background: #e5534b; color: #fff; }
+#moves {
+  height: 32px; line-height: 32px; padding: 0 12px; font-size: 14px; color: var(--muted);
+  white-space: nowrap; overflow-x: auto; touch-action: pan-x; scrollbar-width: none;
+}
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 12px 12px; }
+
+/* modal */
+#modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0, 0, 0, .65); }
+.box { width: min(300px, 86vw); background: var(--panel); border-radius: 14px; padding: 20px; text-align: center; }
+.box h2 { color: var(--text); font-size: 20px; margin-bottom: 16px; }
+#modal-btns { display: grid; gap: 8px; }
+#modal-btns button { background: #33312d; }
+
+/* ============================================================
+   APPEARANCE: board themes + piece sets
+   ============================================================ */
+
+/* Board wrap: rounded frame + depth */
+#board-wrap {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35);
+}
+
+/* --- Board themes -------------------------------------------
+   Every theme sets: --sq-light, --sq-dark, --coord-color, --sq-texture.
+   The checker is drawn on cg-board with two layered 45Â° gradients;
+   --sq-texture is composited underneath.
+   ------------------------------------------------------------ */
+
+.board {
+  --sq-light: #f0d9b5;
+  --sq-dark:  #b58863;
+  --coord-color: #8a5d3b;
+  --sq-texture: none;
+}
+
+.board cg-board {
+  background-color: var(--sq-light);
+  background-image:
+    var(--sq-texture),
+    conic-gradient(
+      var(--sq-dark)  0deg  90deg,
+      var(--sq-light) 90deg 180deg,
+      var(--sq-dark)  180deg 270deg,
+      var(--sq-light) 270deg 360deg
+    );
+  background-size: 100% 100%, 25% 25%;
+  background-position: 0 0, 0 0;
+  background-repeat: no-repeat, repeat;
+}
+
+.board coords {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+  color: var(--coord-color);
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Rank numbers: narrow vertical strip down the left edge.
+   Each coord is 1/8 of the height; text sits at the top-left
+   of that slot, which is the top-left corner of the square. */
+.board coords.ranks {
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 15px;
+  flex-flow: column-reverse;
+}
+.board coords.ranks coord {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 3px 0 0 4px;
+  transform: none !important;
+}
+
+/* File letters: short horizontal strip along the bottom edge.
+   Each coord is 1/8 of the width; text sits at the bottom-right
+   of that slot, which is the bottom-right corner of the square. */
+.board coords.files {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 15px;
+  flex-flow: row;
+}
+.board coords.files coord {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 4px 3px 0;
+  transform: none !important;
+}
+
+/* Wood (default) â€” subtle vertical grain */
+.board.board-wood {
+  --sq-light: #f0d9b5; --sq-dark: #b58863; --coord-color: #8a5d3b;
+  --sq-texture: repeating-linear-gradient(92deg,
+    rgba(100,55,20,.055) 0 2px, transparent 2px 5px,
+    rgba(150,85,35,.045) 5px 7px, transparent 7px 12px);
+}
+
+/* Marble â€” thin diagonal veins */
+.board.board-marble {
+  --sq-light: #eceae6; --sq-dark: #7d7d7d; --coord-color: #5c5c5c;
+  --sq-texture: repeating-linear-gradient(118deg,
+    rgba(0,0,0,.035) 0 2px, transparent 2px 7px,
+    rgba(0,0,0,.02) 7px 9px, transparent 9px 14px);
+}
+
+/* Green (lichess-ish) */
+.board.board-green {
+  --sq-light: #eeeed2; --sq-dark: #769656; --coord-color: #4a6b32;
+}
+
+/* Blue */
+.board.board-blue {
+  --sq-light: #dee3e6; --sq-dark: #788a94; --coord-color: #4d5f68;
+}
+
+/* Purple */
+.board.board-purple {
+  --sq-light: #ede4f2; --sq-dark: #9b72a8; --coord-color: #6a4a78;
+}
+
+/* Neon â€” dark squares with a soft cyan glow, glowing coords */
+.board.board-neon {
+  --sq-light: #1c1c30; --sq-dark: #2e2e50; --coord-color: #7ec8ff;
+  --sq-texture: radial-gradient(circle at 50% 50%,
+    rgba(120,200,255,.07), transparent 65%);
+}
+/* Sakura â€” pink */
+.board.board-sakura {
+  --sq-light: #fce4ec; --sq-dark: #d88aa4; --coord-color: #9c5b72;
+}
+
+/* Sandstone â€” desert tan with grain */
+.board.board-sandstone {
+  --sq-light: #e8d8b8; --sq-dark: #b09068; --coord-color: #7a5f3e;
+  --sq-texture: repeating-linear-gradient(100deg,
+    rgba(120,80,40,.05) 0 3px, transparent 3px 8px);
+}
+
+/* Ice â€” pale blue */
+.board.board-ice {
+  --sq-light: #e8f4fa; --sq-dark: #8cb4cc; --coord-color: #4d7a94;
+}
+
+/* Carbon â€” dark charcoal (pairs well with dark UI themes) */
+.board.board-carbon {
+  --sq-light: #3a3a3a; --sq-dark: #1e1e1e; --coord-color: #8a8a8a;
+  --sq-texture: radial-gradient(circle at 30% 30%,
+    rgba(255,255,255,.03), transparent 70%);
+}
+.board.board-neon coords { text-shadow: 0 0 4px rgba(126,200,255,.7); }
+.board.board-neon { box-shadow: 0 0 0 1px rgba(126,200,255,.18), 0 6px 30px rgba(0,0,0,.6); }
+
+/* ============================================================
+   PIECE SETS
+   ============================================================ */
+
+/* --- Modern: inline SVG, flat fills + thin outline -------------
+   Silhouettes for pawn/rook/queen/king, proper Cburnett-derived
+   paths for knight and bishop (those two need real horse /
+   mitre contours, geometric shapes read as blobs at small sizes).
+   -------------------------------------------------------------- */
+.board.pieces-modern piece {
+  background-size: 90% 90% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* pawn */
+.board.pieces-modern piece.pawn.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'><circle cx='22.5' cy='12' r='5'/><path d='M 15,36 C 17,30 17,22 19,18 L 26,18 C 28,22 28,30 30,36 Z'/></g></svg>");
+}
+.board.pieces-modern piece.pawn.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'><circle cx='22.5' cy='12' r='5'/><path d='M 15,36 C 17,30 17,22 19,18 L 26,18 C 28,22 28,30 30,36 Z'/></g></svg>");
+}
+
+/* rook */
+.board.pieces-modern piece.rook.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.8' stroke-linejoin='round'><path d='M 11,38 L 11,34 L 14,32 L 14,22 L 11,20 L 11,12 L 15,12 L 15,15 L 19,15 L 19,12 L 26,12 L 26,15 L 30,15 L 30,12 L 34,12 L 34,20 L 31,22 L 31,32 L 34,34 L 34,38 Z'/></g></svg>");
+}
+.board.pieces-modern piece.rook.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.8' stroke-linejoin='round'><path d='M 11,38 L 11,34 L 14,32 L 14,22 L 11,20 L 11,12 L 15,12 L 15,15 L 19,15 L 19,12 L 26,12 L 26,15 L 30,15 L 30,12 L 34,12 L 34,20 L 31,22 L 31,32 L 34,34 L 34,38 Z'/></g></svg>");
+}
+
+/* knight â€” real horse-head contour */
+.board.pieces-modern piece.knight.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'><path d='M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18 Z'/><path d='M 24,18 C 24.4,20.9 18.5,25.4 16,27 C 13,29 13.2,31.3 11,31 C 9.96,30.1 12.4,28 11,28 C 10,28 11.2,29.2 10,30 C 9,30 6,31 6,26 C 6,24 12,14 12,14 C 12,14 13.9,12.1 14,10.5 C 13.3,9.5 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.3,8 21,7 C 22,7 22,10 22,10 Z'/><circle cx='14.3' cy='15.8' r='0.9' fill='%23222' stroke='none'/></g></svg>");
+}
+.board.pieces-modern piece.knight.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'><path d='M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18 Z'/><path d='M 24,18 C 24.4,20.9 18.5,25.4 16,27 C 13,29 13.2,31.3 11,31 C 9.96,30.1 12.4,28 11,28 C 10,28 11.2,29.2 10,30 C 9,30 6,31 6,26 C 6,24 12,14 12,14 C 12,14 13.9,12.1 14,10.5 C 13.3,9.5 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.3,8 21,7 C 22,7 22,10 22,10 Z'/><circle cx='14.3' cy='15.8' r='0.9' fill='%23f8f4ec' stroke='none'/></g></svg>");
+}
+
+/* bishop â€” real mitre contour, no more teardrop */
+.board.pieces-modern piece.bishop.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.6' stroke-linejoin='round'><path d='M 9,36 C 12.4,35 19.1,36.4 22.5,34 C 25.9,36.4 32.6,35 36,36 C 36,36 37.7,36.5 39,38 C 38.3,39 37.4,39 36,38.5 C 32.6,37.5 25.9,39 22.5,37.5 C 19.1,39 12.4,37.5 9,38.5 C 7.65,39 6.68,39 6,38 C 7.35,36.5 9,36 9,36 Z'/><path d='M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 Z'/><circle cx='22.5' cy='8' r='2.5'/></g></svg>");
+}
+.board.pieces-modern piece.bishop.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.6' stroke-linejoin='round'><path d='M 9,36 C 12.4,35 19.1,36.4 22.5,34 C 25.9,36.4 32.6,35 36,36 C 36,36 37.7,36.5 39,38 C 38.3,39 37.4,39 36,38.5 C 32.6,37.5 25.9,39 22.5,37.5 C 19.1,39 12.4,37.5 9,38.5 C 7.65,39 6.68,39 6,38 C 7.35,36.5 9,36 9,36 Z'/><path d='M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 Z'/><circle cx='22.5' cy='8' r='2.5'/></g></svg>");
+}
+
+/* queen */
+.board.pieces-modern piece.queen.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.8' stroke-linejoin='round'><circle cx='6' cy='12' r='2.2'/><circle cx='14' cy='9' r='2.2'/><circle cx='22.5' cy='8' r='2.2'/><circle cx='31' cy='9' r='2.2'/><circle cx='39' cy='12' r='2.2'/><path d='M 6,12 L 9,36 L 36,36 L 39,12 L 31,18 L 26,10 L 22.5,17 L 19,10 L 14,18 Z'/></g></svg>");
+}
+.board.pieces-modern piece.queen.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.8' stroke-linejoin='round'><circle cx='6' cy='12' r='2.2'/><circle cx='14' cy='9' r='2.2'/><circle cx='22.5' cy='8' r='2.2'/><circle cx='31' cy='9' r='2.2'/><circle cx='39' cy='12' r='2.2'/><path d='M 6,12 L 9,36 L 36,36 L 39,12 L 31,18 L 26,10 L 22.5,17 L 19,10 L 14,18 Z'/></g></svg>");
+}
+
+/* king */
+.board.pieces-modern piece.king.white {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%23f8f4ec' stroke='%23222' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'><path d='M 22.5,5 L 22.5,12 M 19,8.5 L 26,8.5' fill='none' stroke-width='2.4'/><path d='M 6,16 L 9,38 L 36,38 L 39,16 L 31,22 L 26,13 L 22.5,20 L 19,13 L 14,22 Z'/></g></svg>");
+}
+.board.pieces-modern piece.king.black {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 45 45'><g fill='%232b2b2b' stroke='%23000' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'><path d='M 22.5,5 L 22.5,12 M 19,8.5 L 26,8.5' fill='none' stroke-width='2.4'/><path d='M 6,16 L 9,38 L 36,38 L 39,16 L 31,22 L 26,13 L 22.5,20 L 19,13 L 14,22 Z'/></g></svg>");
+}
+
+/* --- Outline: Unicode chess glyphs as text ---------------------
+   Font-size bumped from /12 to /8.5 so the glyph fills the square.
+   -------------------------------------------------------------- */
+.board.pieces-outline piece {
+  background-image: none !important;
+  font-size: calc(var(--board) / 8.5);
+  line-height: 1;
+}
+
+.board.pieces-outline piece::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", sans-serif;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.board.pieces-outline piece.white::before { color: #f8f4ec; text-shadow: 0 0 1px #222, 0 1px 2px rgba(0,0,0,.45); }
+.board.pieces-outline piece.black::before { color: #141414; text-shadow: 0 0 1px rgba(255,255,255,.35); }
+
+.board.pieces-outline piece.king.white::before   { content: '\2654'; }
+.board.pieces-outline piece.queen.white::before  { content: '\2655'; }
+.board.pieces-outline piece.rook.white::before   { content: '\2656'; }
+.board.pieces-outline piece.bishop.white::before { content: '\2657'; }
+.board.pieces-outline piece.knight.white::before { content: '\2658'; }
+.board.pieces-outline piece.pawn.white::before   { content: '\2659'; }
+
+.board.pieces-outline piece.king.black::before   { content: '\265A'; }
+.board.pieces-outline piece.queen.black::before  { content: '\265B'; }
+.board.pieces-outline piece.rook.black::before   { content: '\265C'; }
+.board.pieces-outline piece.bishop.black::before { content: '\265D'; }
+.board.pieces-outline piece.knight.black::before { content: '\265E'; }
+.board.pieces-outline piece.pawn.black::before   { content: '\265F'; }
+
+/* ============================================================
+   APPEARANCE PICKER (collapsible panel)
+   ============================================================ */
+details.appearance-group {
+  margin-bottom: 18px;
+  background: var(--panel);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+details.appearance-group > .group {
+  margin: 0;
+  padding: 0 12px 20px;
+  gap: 10px;
+}
+details.appearance-group > summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+details.appearance-group > summary::-webkit-details-marker { display: none; }
+details.appearance-group > summary::after {
+  content: '';
+  width: 8px; height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform .18s ease;
+  margin-right: 4px;
+}
+details.appearance-group[open] > summary::after {
+  transform: rotate(-135deg);
+}
+details.appearance-group > .group {
+  margin: 0;
+  padding: 0 12px 12px;
+  gap: 8px;
+}
+
+.picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  grid-column: 1 / -1;
+  grid-auto-rows: min-content;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 4px;
+  min-height: 56px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.swatch.sel { background: var(--accent); color: #10200a; }
+.swatch .preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.35) inset;
+}
+.swatch .preview i { display: block; }
+.swatch .lbl { line-height: 1; }
+
+/* ============================================================
+   UI THEMES
+   :root.theme-<id> overrides the base palette in :root.
+   --accent-text is the readable foreground on --accent.
+   ============================================================ */
+
+:root.theme-dark {
+  --bg: #161512; --panel: #262421; --text: #e8e6e3; --muted: #9a9791;
+  --accent: #81b64c; --accent-text: #10200a;
+}
+:root.theme-light {
+  --bg: #f4f4f2; --panel: #e4e3df; --text: #1d1c1a; --muted: #6e6c66;
+  --accent: #5c9a3a; --accent-text: #ffffff;
+}
+:root.theme-midnight {
+  --bg: #0c1220; --panel: #182338; --text: #dbe6f5; --muted: #7d8ba3;
+  --accent: #4f9cff; --accent-text: #06121f;
+}
+:root.theme-forest {
+  --bg: #0f1a12; --panel: #1c2c20; --text: #dceadd; --muted: #7f9a84;
+  --accent: #7bbf5a; --accent-text: #0d1f0a;
+}
+:root.theme-ocean {
+  --bg: #0a1a1f; --panel: #143038; --text: #d6eef2; --muted: #7699a1;
+  --accent: #2fb8c6; --accent-text: #04171a;
+}
+:root.theme-rose {
+  --bg: #1c1216; --panel: #2b1c22; --text: #f2dee6; --muted: #a4808e;
+  --accent: #e2608e; --accent-text: #2a0612;
+}
+:root.theme-coffee {
+  --bg: #1e1611; --panel: #2e241c; --text: #f0e6da; --muted: #a89078;
+  --accent: #c48a5a; --accent-text: #2a170a;
+}
+:root.theme-sky {
+  --bg: #eaf2f8; --panel: #d3e2ee; --text: #1a2a38; --muted: #5d7a8e;
+  --accent: #3a8fd0; --accent-text: #ffffff;
+}
+:root.theme-crimson {
+  --bg: #1a0d0f; --panel: #2b1418; --text: #f5dedf; --muted: #a17579;
+  --accent: #e04560; --accent-text: #ffffff;
+}
+:root.theme-mint {
+  --bg: #f0f7f3; --panel: #dbeae1; --text: #16281e; --muted: #587a68;
+  --accent: #2ea672; --accent-text: #ffffff;
+}
+
+/* Foreground on accent surfaces now follows the theme */
+button.primary,
+.tabs button.sel,
+.sel,
+.swatch.sel { color: var(--accent-text); }
+
+/* Light theme needs the board frame + modal to not glow */
+:root.theme-light #board-wrap { box-shadow: 0 4px 16px rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.14); }
+:root.theme-light #modal { background: rgba(40,38,34,.45); }
+
+/* --- Theme chip preview (bg strip + panel/accent dots) -------- */
+.swatch .preview-theme {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 42px;
+  height: 26px;
+  padding: 0 5px;
+  border-radius: 6px;
+}
+.preview-theme i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   PUZZLES
+   ============================================================ */
+#view-puzzles { padding: 16px 16px 0; justify-content: flex-start; overflow-y: auto; }
+#view-puzzles h2 { margin-top: 4px; }
+#puz-title { font-size: 22px; color: var(--text); font-weight: 700; margin: 0; }
+
+.puzzle-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; gap: 8px;
+}
+.puzzle-head button { min-height: 44px; padding: 0 14px; }
+
+#puz-picker .picker { margin-bottom: 18px; }
+#puz-picker .tabs { margin-bottom: 18px; }
+#puz-rating { grid-template-columns: repeat(3, 1fr); }
+
+#puz-board-wrap {
+  width: min(100%, var(--puz-board));
+  aspect-ratio: 1;
+  align-self: center;
+  border-radius: 6px; overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35);
+}
+#puz-verdict {
+  width: min(100%, var(--puz-board));
+  align-self: center; min-height: 28px;
+  line-height: 28px; padding: 0 12px; font-size: 14px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#puz-meta {
+  width: min(100%, var(--puz-board));
+  align-self: center; padding: 0 12px 8px;
+  font-size: 13px; color: var(--muted);
+}
+/* puzzle lives */
+#puz-lives {
+  --heart: #e5484d;
+  width: min(100%, var(--puz-board));
+  align-self: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 8px;
+  color: var(--heart);
+}
+#puz-lives .heart {
+  display: inline-flex;
+  width: 20px; height: 20px;
+  transition: opacity .2s ease, color .2s ease, transform .2s ease;
+}
+#puz-lives .heart svg { width: 100%; height: 100%; display: block; }
+#puz-lives .heart.empty {
+  color: var(--muted);
+  opacity: .3;
+}
+#puz-lives .heart.just-lost {
+  animation: heart-burst .45s ease;
+}
+@keyframes heart-burst {
+  0%   { transform: scale(1);    color: var(--heart); opacity: 1; }
+  40%  { transform: scale(1.4);  color: var(--heart); opacity: 1; }
+  100% { transform: scale(1);    color: var(--muted); opacity: .3; }
+}
+#puz-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+#puz-game .controls { padding-top: 4px; }
+#puz-game .controls button { min-height: 52px; }
