@@ -98,15 +98,27 @@
     </section>
 
     <section id="view-game" class="view" hidden>
-      <div class="player" id="player-top"><span class="name" id="name-top"></span><span class="clock" id="clock-top"></span></div>
+      <div class="player" id="player-top">
+        <div class="player-info">
+          <span class="name" id="name-top"></span>
+          <span class="captures" id="captures-top"></span>
+        </div>
+        <span class="clock" id="clock-top"></span>
+      </div>
       <div id="board-wrap"><div id="board" class="board"></div></div>
       <div id="verdict"></div>
-      <div class="player" id="player-bottom"><span class="name" id="name-bottom"></span><span class="clock" id="clock-bottom"></span></div>
+      <div class="player" id="player-bottom">
+        <div class="player-info">
+          <span class="name" id="name-bottom"></span>
+          <span class="captures" id="captures-bottom"></span>
+        </div>
+        <span class="clock" id="clock-bottom"></span>
+      </div>
       <div id="moves"></div>
       <nav class="controls">
-        <button id="btn-flip">Flip</button>
         <button id="btn-resign">Resign</button>
         <button id="btn-menu">Menu</button>
+        <button id="btn-flip">Flip</button>
       </nav>
     </section>
   </div>

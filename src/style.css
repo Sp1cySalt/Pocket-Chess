@@ -66,6 +66,57 @@ input[type=range] { grid-column: 1 / -1; padding: 0; border: 0; background: none
   font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.player-info .name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.captures {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 24px;
+  overflow: hidden;
+  flex-shrink: 1;
+  min-width: 0;
+}
+.captures .cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  width: 16px;
+  height: 24px;
+  font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.captures .cap-white {
+  color: #f8f4ec;
+  text-shadow: 0 0 1px #333, 0 1px 1px rgba(0,0,0,.5);
+}
+.captures .cap-black {
+  color: #9a9a9a;                              /* ← was #2b2b2b, now legible on dark */
+  text-shadow: 0 0 1px #000, 0 1px 1px rgba(255,255,255,.15);
+}
+.captures .diff {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
 /* game */
 #board-wrap { width: var(--board); height: var(--board); align-self: center; }
 .board { width: 100%; height: 100%; }

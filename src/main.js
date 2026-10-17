@@ -574,10 +574,10 @@ function sync() {
     turnColor: turn,
     check: chess.inCheck() ? turn : false,
     lastMove: last ? [last.from, last.to] : undefined,
-    // vs the bot you may move (premove) even while the bot is thinking
     movable: { color: over ? undefined : botColor ? (botColor === 'w' ? 'black' : 'white') : turn, dests },
   });
   if (over) cg.cancelPremove();
+  renderCaptures();   // ← add
 }
 
 function onMove(from, to, meta) {
@@ -630,7 +630,43 @@ function renderClocks() {
     $('player-' + pos).classList.toggle('low', ms < 20000);
   }
 }
+const CAPTURE_GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const PIECE_VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+const CAPTURE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 
+function computeCaptures() {
+  const byWhite = [];
+  const byBlack = [];
+  for (const mv of chess.history({ verbose: true })) {
+    if (!mv.captured) continue;
+    (mv.color === 'w' ? byWhite : byBlack).push(mv.captured);
+  }
+  const sum = (list) => list.reduce((s, t) => s + (PIECE_VALUE[t] || 0), 0);
+  return { byWhite, byBlack, diff: sum(byWhite) - sum(byBlack) };
+}
+
+function renderCaptures() {
+  if (!chess) return;
+  const bottom = flipped ? 'b' : 'w';
+  const top = flipped ? 'w' : 'b';
+  const { byWhite, byBlack, diff } = computeCaptures();
+
+  for (const [pos, color] of [['top', top], ['bottom', bottom]]) {
+    const el = $('captures-' + pos);
+    if (!el) continue;
+    const captured = color === 'w' ? byWhite : byBlack;
+    const oppColor = color === 'w' ? 'b' : 'w';
+    const myDiff = color === 'w' ? diff : -diff;
+
+    const sorted = [...captured].sort((a, b) => CAPTURE_ORDER[a] - CAPTURE_ORDER[b]);
+    const parts = sorted.map((t) => {
+      const cls = oppColor === 'w' ? 'cap-white' : 'cap-black';
+      return `<span class="cap ${cls}">${CAPTURE_GLYPHS[t]}</span>`;
+    });
+    if (myDiff > 0) parts.push(`<span class="diff">+${myDiff}</span>`);
+    el.innerHTML = parts.join('');
+  }
+}
 function renderMoves() {
   const el = $('moves');
   el.replaceChildren(...chess.history().map((san, i) => {
